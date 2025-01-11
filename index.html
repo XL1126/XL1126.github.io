@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>头像投票</title>
+    <style>
+        :root {
+            --primary-color: #b4dfff;
+            --primary-dark: #313131;
+            --background-light: #FFFFFF;
+            --background-dark: #121212;
+            --text-light: #333333;
+            --text-dark: #FFFFFF;
+        }
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-light);
+            color: var(--text-light);
+            transition: background-color 0.3s, color 0.3s;
+        }
+        body.dark-mode {
+            background-color: var(--background-dark);
+            color: var(--text-dark);
+        }
+        header {
+            background-color: var(--primary-color);
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: background-color 0.3s;
+        }
+        body.dark-mode header {
+            background-color: var(--primary-dark);
+        }
+        h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        button {
+            background-color: #1E88E5;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+            font-size: 0.9rem;
+        }
+        button:hover {
+            background-color: #1565C0;
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button:disabled {
+            background-color: #B0BEC5;
+            cursor: not-allowed;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .avatar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+        }
+        .avatar-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            background-color: rgba(180, 223, 255, 0.1);
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+        .avatar-item:hover {
+            transform: translateY(-5px);
+        }
+        .avatar-item img {
+            width: 150px;
+            height: 150px;
+            border-radius: 20px;
+            margin-bottom: 1rem;
+            object-fit: cover;
+            border: 3px solid #1E88E5;
+            cursor: pointer;
+        }
+        .dialog {
+            display: none;
+            position: fixed;
+            top: -100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--background-light);
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            max-width: 90%;
+            width: 300px;
+            transition: top 0.3s ease-out, opacity 0.3s ease-out;
+            opacity: 0;
+        }
+        .dialog.show {
+            top: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 1;
+        }
+        .dialog.dark-mode {
+            background-color: var(--background-dark);
+        }
+        .dialog h2 {
+            margin-top: 0;
+        }
+        .dialog input {
+            width: 100%;
+            padding: 0.5rem;
+            margin: 1rem 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .dialog-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+        #message {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            padding: 1rem;
+            border-radius: 5px;
+            display: none;
+            z-index: 1001;
+        }
+        .success {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .error {
+            background-color: #F44336;
+            color: white;
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+        #imagePreview {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1002;
+            max-width: 90%;
+            max-height: 90%;
+        }
+        #imagePreview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>头像投票</h1>
+        <div>
+            <button id="themeToggle">切换主题</button>
+            <button id="resetButton">重置投票</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="avatar-grid" id="avatarGrid"></div>
+    </div>
+
+    <div id="resetDialog" class="dialog">
+        <h2>确认重置</h2>
+        <p>请输入任意字符作为密码以确认重置操作。此操作将清空所有投票结果。</p>
+        <input type="password" id="resetPassword" placeholder="输入密码">
+        <div class="dialog-buttons">
+            <button id="cancelReset">取消</button>
+            <button id="confirmReset">确认重置</button>
+        </div>
+    </div>
+
+    <div id="message"></div>
+    <div id="overlay" class="overlay"></div>
+    <div id="imagePreview">
+        <img src="/placeholder.svg" alt="头像预览">
+    </div>
+
+    <script>
+        const avatars = [
+            { id: 1, src: 'https://thumbnail0.baidupcs.com/thumbnail/e328cd115o22502a26d37cb5f6fa6ce3?fid=1103765344995-250528-871289822887940&time=1736611200&rt=sh&sign=FDTAER-DCb740ccc5511e5e8fedcff06b081203-dx3BeDwfdFnkaiSMHegWQcnOn2Y%3D&expires=8h&chkv=0&chkbd=0&chkpc=&dp-logid=255664729138722360&dp-callid=0&file_type=0&size=c1536_u864&quality=90&vuk=-&ft=video&autopolicy=1' },
+            { id: 2, src: 'https://thumbnail0.baidupcs.com/thumbnail/5029bac76r4964df73ddbb086c560679?fid=1103765344995-250528-330297038710688&time=1736611200&rt=sh&sign=FDTAER-DCb740ccc5511e5e8fedcff06b081203-%2Bvpdiyt6VIrbIaM%2Fe%2Fd9kV2Mjf8%3D&expires=8h&chkv=0&chkbd=0&chkpc=&dp-logid=255664729138722360&dp-callid=0&file_type=0&size=c1536_u864&quality=90&vuk=-&ft=video&autopolicy=1' },
+            { id: 3, src: 'https://thumbnail0.baidupcs.com/thumbnail/f0108cdaas1956927cc049650227d9bf?fid=1103765344995-250528-522422193763380&time=1736611200&rt=sh&sign=FDTAER-DCb740ccc5511e5e8fedcff06b081203-bi9k10UHhNE3MD%2Bq2iVTI8Qg64Q%3D&expires=8h&chkv=0&chkbd=0&chkpc=&dp-logid=255664729138722360&dp-callid=0&file_type=0&size=c1536_u864&quality=90&vuk=-&ft=video&autopolicy=1' },
+            { id: 4, src: 'https://thumbnail0.baidupcs.com/thumbnail/ff7ae8a65q46ebcd06511ae1bb33958b?fid=1103765344995-250528-582748011981578&time=1736611200&rt=sh&sign=FDTAER-DCb740ccc5511e5e8fedcff06b081203-2LZ1TZRItE0DodSGuW3gn8b6Bhs%3D&expires=8h&chkv=0&chkbd=0&chkpc=&dp-logid=255664729138722360&dp-callid=0&file_type=0&size=c1536_u864&quality=90&vuk=-&ft=video&autopolicy=1' }
+        ];
+
+        let votes = JSON.parse(localStorage.getItem('avatarVotes')) || {};
+        let userId = localStorage.getItem('userId');
+
+        if (!userId) {
+            userId = 'user_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('userId', userId);
+        }
+
+        function renderAvatars() {
+            const grid = document.getElementById('avatarGrid');
+            grid.innerHTML = '';
+            avatars.forEach(avatar => {
+                const item = document.createElement('div');
+                item.className = 'avatar-item';
+                item.innerHTML = `
+                    <img src="${avatar.src}" alt="头像 ${avatar.id}" onclick="previewImage('${avatar.src}')">
+                    <p>头像 ${avatar.id}</p>
+                    <p>票数: <span id="votes-${avatar.id}">${votes[avatar.id] || 0}</span></p>
+                    <button onclick="vote(${avatar.id})" id="vote-btn-${avatar.id}">投票</button>
+                `;
+                grid.appendChild(item);
+            });
+            updateVoteButtons();
+        }
+
+        function vote(id) {
+            const userVote = localStorage.getItem(`userVote_${userId}`);
+            if (userVote) {
+                showMessage('您已经投过票了', 'error');
+                return;
+            }
+            votes[id] = (votes[id] || 0) + 1;
+            localStorage.setItem('avatarVotes', JSON.stringify(votes));
+            localStorage.setItem(`userVote_${userId}`, id);
+            document.getElementById(`votes-${id}`).textContent = votes[id];
+            showMessage('投票成功！', 'success');
+            updateVoteButtons();
+        }
+
+        function updateVoteButtons() {
+            const userVote = localStorage.getItem(`userVote_${userId}`);
+            avatars.forEach(avatar => {
+                const button = document.getElementById(`vote-btn-${avatar.id}`);
+                if (userVote) {
+                    button.disabled = true;
+                    button.textContent = userVote == avatar.id ? '已投票' : '投票';
+                } else {
+                    button.disabled = false;
+                    button.textContent = '投票';
+                }
+            });
+        }
+
+        function resetVotes() {
+            votes = {};
+            localStorage.removeItem('lfy201126');
+            localStorage.removeItem(`userVote_${userId}`);
+            renderAvatars();
+            showMessage('投票已重置', 'success');
+        }
+
+        function showMessage(text, type) {
+            const message = document.getElementById('message');
+            message.textContent = text;
+            message.className = type;
+            message.style.display = 'block';
+            setTimeout(() => {
+                message.style.display = 'none';
+            }, 3000);
+        }
+
+        function showDialog(id) {
+            document.getElementById(id).style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+            setTimeout(() => {
+                document.getElementById(id).classList.add('show');
+            }, 10);
+        }
+
+        function hideDialog(id) {
+            document.getElementById(id).classList.remove('show');
+            setTimeout(() => {
+                document.getElementById(id).style.display = 'none';
+                document.getElementById('overlay').style.display = 'none';
+            }, 300);
+        }
+
+        function previewImage(src) {
+            const preview = document.getElementById('imagePreview');
+            const img = preview.querySelector('img');
+            img.src = src;
+            preview.style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+        }
+
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            document.getElementById('resetDialog').classList.toggle('dark-mode');
+        });
+
+        document.getElementById('resetButton').addEventListener('click', () => {
+            showDialog('resetDialog');
+        });
+
+        document.getElementById('confirmReset').addEventListener('click', () => {
+            const password = document.getElementById('resetPassword').value;
+            if (password) {
+                resetVotes();
+                hideDialog('resetDialog');
+                document.getElementById('resetPassword').value = '';
+            } else {
+                showMessage('请输入密码', 'error');
+            }
+        });
+
+        document.getElementById('cancelReset').addEventListener('click', () => {
+            hideDialog('resetDialog');
+            document.getElementById('resetPassword').value = '';
+        });
+
+        document.getElementById('overlay').addEventListener('click', () => {
+            hideDialog('resetDialog');
+            document.getElementById('imagePreview').style.display = 'none';
+        });
+
+        // 检查系统主题偏好
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.body.classList.add('dark-mode');
+            document.getElementById('resetDialog').classList.add('dark-mode');
+        }
+
+        // 监听系统主题变化
+        window.matchMedia('(prefers-color-scheme: dark)').addListener((e) => {
+            if (e.matches) {
+                document.body.classList.add('dark-mode');
+                document.getElementById('resetDialog').classList.add('dark-mode');
+            } else {
+                document.body.classList.remove('dark-mode');
+                document.getElementById('resetDialog').classList.remove('dark-mode');
+            }
+        });
+
+        // 根据时间自动切换主题
+        function setThemeByTime() {
+            const hour = new Date().getHours();
+            if (hour >= 18 || hour < 6) {
+                document.body.classList.add('dark-mode');
+                document.getElementById('resetDialog').classList.add('dark-mode');
+            } else {
+                document.body.classList.remove('dark-mode');
+                document.getElementById('resetDialog').classList.remove('dark-mode');
+            }
+        }
+
+        setThemeByTime();
+        setInterval(setThemeByTime, 60000); // 每分钟检查一次
+
+        renderAvatars();
+    </script>
+</body>
+</html>
