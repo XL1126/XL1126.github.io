@@ -120,7 +120,7 @@
                     console.log(`纬度: ${latitude}, 经度: ${longitude}, 海拔: ${alt}, 定位方式: ${locationType}`);
 
                     // 将数据发送到后台
-                    fetch('/location', {
+                    fetch('https://fitting-flexible-orca.ngrok-free.app/location', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
