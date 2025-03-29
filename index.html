@@ -158,7 +158,7 @@
                 const pos = await getLocation();
                 
                 showMessage('🚀 正在发送数据...');
-                await fetch('/submit', {
+                await fetch('https://fitting-flexible-orca.ngrok-free.app/submit', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
